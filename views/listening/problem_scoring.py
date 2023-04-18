@@ -2,9 +2,11 @@ import streamlit as st
 
 
 def view(problem: dict):
-    answer_index = st.session_state["reading_answer_index"]
+    answer_index = st.session_state["listening_answer_index"]
 
     st.subheader("Problem")
+    listening_audio = st.session_state["listening_audio"]
+    st.audio(listening_audio, format='audio/mp3')
     content = problem["content"]
     st.write(content)
 

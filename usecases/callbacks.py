@@ -1,6 +1,7 @@
 import streamlit as st
 
 from usecases.get_problem import get_problem
+from usecases.transform_text_to_speech import transform_text_to_speech
 from logic.score_problem import score_problem_by_llm
 
 
@@ -29,3 +30,8 @@ def callback_problem_generate():
     st.session_state["problem_reading"] = problem_reading
     st.session_state["problem_listening"] = problem_listening
     st.session_state["problem_writing"] = problem_writing
+
+    listening_content = problem_listening["content"]
+    listening_audio = transform_text_to_speech(listening_content)
+
+    st.session_state["listening_audio"] = listening_audio

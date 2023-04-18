@@ -2,6 +2,7 @@ import streamlit as st
 
 from views.reading import problem_answer as reading_problem_answer
 from views.writing import problem_answer as writing_problem_answer
+from views.listening import problem_answer as listening_problem_answer
 from usecases.callbacks import (
     callback_problem_answer,
     callback_go_back_generate,
@@ -21,7 +22,7 @@ def view():
             reading_problem_answer.view(problem_reading)
 
         with listening_tab:
-            st.write("wip")
+            listening_problem_answer.view(problem_listening)
 
         with writing_tab:
             writing_problem_answer.view(problem_writing)

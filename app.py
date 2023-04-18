@@ -14,11 +14,11 @@ def initialize():
     st.session_state["problem_listening"] = None
     st.session_state["problem_writing"] = None
 
-    st.session_state["reading_answer"] = None
-    st.session_state["answer_index"] = 0
+    st.session_state["reading_answer_index"] = 0
+    st.session_state["listening_answer_index"] = 0
+    st.session_state["writing_answer"] = ""
 
     st.session_state["page_state"] = "setting" # setting, answer, score
-    st.session_state["writing_answer"] = ""
 
 
 if "init" not in st.session_state:
