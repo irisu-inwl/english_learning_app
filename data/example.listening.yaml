@@ -1,0 +1,10 @@
+problem_type: "listening"
+content: "Bats are the only mammals capable of sustained flight. Unlike birds, bats have elongated fingers rather than stiff feathers. These fingers support a thin membrane of skin that allows them to fly. While bats can't fly as fast as birds, they are more maneuverable, which is an advantage when pursuing their prey in the dark."
+question: "What is unique about bats among mammals?"
+answer_options:
+  - "They have stiff feathers."
+  - "They are capable of sustained flight."
+  - "They are less maneuverable than birds."
+  - "They have short fingers."
+correct: 1
+commentary: "The correct answer is that bats are capable of sustained flight. The content explains that bats are the only mammals with this ability."

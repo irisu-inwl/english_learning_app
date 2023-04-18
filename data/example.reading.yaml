@@ -1,0 +1,12 @@
+problem_type: "reading"
+content: "Mount Everest is the Earth's highest mountain above sea level, located in the Himalayas. The international border between Nepal and China runs across its summit point. Everest attracts many climbers, some of them highly experienced mountaineers, but it also poses significant hazards. The mountain has claimed the lives of over 300 people since the first ascent attempt in 1922."
+question: "Which countries share a border at the summit of Mount Everest?"
+answer_options:
+  - "India and Nepal"
+  - "Nepal and China"
+  - "China and India"
+  - "Pakistan and Nepal"
+correct: 1
+commentary: "The correct answer is Nepal and China, as mentioned in the text that the international border between Nepal and China runs across the summit point."
+difficulty: 6.5
+topic: "Mount Everest"
