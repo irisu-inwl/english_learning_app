@@ -1,6 +1,7 @@
 import streamlit as st
 
 from views.reading import problem_scoring as reading_problem_scoring
+from views.listening import problem_scoring as listening_problem_scoring
 from views.writing import problem_scoring as writing_problem_scoring
 from usecases.callbacks import (
     callback_go_back_generate,
@@ -18,7 +19,7 @@ def view():
         reading_problem_scoring.view(problem_reading)
 
     with listening_tab:
-        st.write("wip")
+        listening_problem_scoring.view(problem_listening)
 
     with writing_tab:
         writing_problem_scoring.view(problem_writing)
