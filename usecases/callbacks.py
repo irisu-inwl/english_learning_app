@@ -12,7 +12,8 @@ def callback_problem_answer():
 
     writing_scoring = score_problem_by_llm(writing_answer, writing_problem)
     st.session_state["system_score"] = writing_scoring["score"]
-    st.session_state["system_comments"] = writing_scoring["comments"]
+    st.session_state["system_feedback"] = writing_scoring["feedback"]
+    st.session_state["system_corrected"] = writing_scoring["corrected"]
 
 
 def callback_go_back_generate():
@@ -31,7 +32,7 @@ def callback_problem_generate():
     st.session_state["problem_listening"] = problem_listening
     st.session_state["problem_writing"] = problem_writing
 
-    listening_content = problem_listening["content"]
-    listening_audio = transform_text_to_speech(listening_content)
+    listening_passage = problem_listening["passage"]
+    listening_audio = transform_text_to_speech(listening_passage)
 
     st.session_state["listening_audio"] = listening_audio

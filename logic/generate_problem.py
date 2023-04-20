@@ -15,22 +15,30 @@ from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 
 from logic.prompts import (
     problem_template,
-    reading_listening_response_schemas,
-    writing_schemas,
+    reading_response_schemas,
+    writing_response_schemas,
+    listening_response_schemas,
+    english_test_target,
+    topics,
 )
-from custom_types.problem_types import ChoiceQuestionProblem, FreeDescriptionProblem
+from custom_types.problem_types import (
+    ChoiceQuestionReadingProblem, ChoiceQuestionListeningProblem, FreeDescriptionProblem
+)
 
-ProblemType = ChoiceQuestionProblem | FreeDescriptionProblem
+ProblemType = ChoiceQuestionReadingProblem | ChoiceQuestionListeningProblem | FreeDescriptionProblem
 chat_model = ChatOpenAI(temperature=0)
 
 
-def _transform_problem(problem: dict, transform_type: ProblemType):
+def _transform_problem(problem: dict[str, str], transform_type: ProblemType):
     # FIXME: pydantic parser使えば良いと思う
     output: ProblemType = {}
     type_hints = get_type_hints(transform_type)
     
     for key, var_type in type_hints.items():
-        output[key] = var_type(problem[key])
+        value = problem[key]
+        if var_type == list[str] and value.startswith("[") is False:
+            value = f"[{value}]"
+        output[key] = var_type(value)
     
     return output
 
@@ -46,11 +54,14 @@ def _save_problem_file(problem: dict, problem_type: str):
 
 def _build_prompt(current_cefr: str, objective_cefr: str, problem_type: str):
     template = problem_template
+    topic_examples = ",".join(topics)
 
-    if problem_type in ["reading", "listening"]:
-        response_schemas = reading_listening_response_schemas
-    if problem_type in ["writing"]:
-        response_schemas = writing_schemas
+    if problem_type == "reading":
+        response_schemas = reading_response_schemas
+    if problem_type == "listening":
+        response_schemas = listening_response_schemas
+    if problem_type == "writing":
+        response_schemas = writing_response_schemas
 
     # OutputParserの準備
     output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
@@ -61,23 +72,28 @@ def _build_prompt(current_cefr: str, objective_cefr: str, problem_type: str):
         messages=[
             HumanMessagePromptTemplate.from_template(template) 
         ],
-        input_variables=["current_cefr", "objective_cefr", "problem_type"],
+        input_variables=["current_cefr", "objective_cefr", "problem_type", "english_test_target", "topic_examples"],
         partial_variables={"format_instructions": format_instructions}
     )
 
     # プロンプトの作成
     _input = prompt.format_prompt(
-        current_cefr=current_cefr, objective_cefr=objective_cefr, problem_type=problem_type)
+        current_cefr=current_cefr, objective_cefr=objective_cefr, 
+        problem_type=problem_type, english_test_target=english_test_target,
+        topic_examples=topic_examples
+    )
     
     return _input, output_parser
 
 
 def generate_problem_by_llm(current_cefr: str, objective_cefr: str, problem_type: str):
-    if problem_type in ["reading", "listening"]:
-        transform_type = ChoiceQuestionProblem
-    if problem_type in ["writing"]:
+    if problem_type == "reading":
+        transform_type = ChoiceQuestionReadingProblem
+    if problem_type == "listening":
+        transform_type = ChoiceQuestionListeningProblem
+    if problem_type == "writing":
         transform_type = FreeDescriptionProblem
-    
+
     _input, output_parser = _build_prompt(current_cefr, objective_cefr, problem_type)
 
     # 実行
@@ -103,11 +119,15 @@ def async_generate_problem_by_llm(current_cefr: str, objective_cefr: str, proble
     for problem_type in problem_types:
         input_dict = {}
         input_dict["problem_type"] = problem_type
-        if problem_type in ["reading", "listening"]:
-            input_dict["transform_type"] = ChoiceQuestionProblem
-        if problem_type in ["writing"]:
-            input_dict["transform_type"] = FreeDescriptionProblem
-    
+        if problem_type == "reading":
+            transform_type = ChoiceQuestionReadingProblem
+        if problem_type == "listening":
+            transform_type = ChoiceQuestionListeningProblem
+        if problem_type == "writing":
+            transform_type = FreeDescriptionProblem
+
+        input_dict["transform_type"] = transform_type
+
         _input, output_parser = _build_prompt(current_cefr, objective_cefr, problem_type)
         input_dict["prompt"] = _input
         input_dict["output_parser"] = output_parser
