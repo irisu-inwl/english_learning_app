@@ -1,6 +1,6 @@
 import streamlit as st
 
-from usecases.get_problem import get_problem
+from usecases.get_problems import get_problems
 from usecases.transform_text_to_speech import transform_text_to_speech
 from logic.score_problem import score_problem_by_llm
 
@@ -25,7 +25,7 @@ def callback_problem_generate():
     objective_cefr_level = st.session_state["objective_cefr_level"]
 
     # usecases内でusecases呼ぶことで森羅万象ディレクトリになりそうだけどそうなったら考える
-    problem_reading, problem_listening, problem_writing = get_problem(current_cefr_level, objective_cefr_level)
+    problem_reading, problem_listening, problem_writing = get_problems(current_cefr_level, objective_cefr_level)
 
     st.session_state["problem_reading"] = problem_reading
     st.session_state["problem_listening"] = problem_listening

@@ -1,3 +1,5 @@
+import os
+
 import streamlit as st
 
 from views import (
@@ -19,6 +21,8 @@ def initialize():
     st.session_state["writing_answer"] = ""
 
     st.session_state["page_state"] = "setting" # setting, answer, score
+
+    st.session_state["config"] = os.getenv("CONFIG", "debug") # debug, develop, production
 
 
 if "init" not in st.session_state:

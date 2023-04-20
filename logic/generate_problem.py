@@ -2,6 +2,7 @@ import json
 import logging
 import uuid
 from typing import get_type_hints
+import asyncio
 
 import yaml
 try:
@@ -13,8 +14,9 @@ from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 
 from logic.prompts import (
-    reading_listening_problem_template,
+    problem_template,
     reading_listening_response_schemas,
+    writing_schemas,
 )
 from custom_types.problem_types import ChoiceQuestionProblem, FreeDescriptionProblem
 
@@ -42,11 +44,13 @@ def _save_problem_file(problem: dict, problem_type: str):
         )
 
 
-def generate_problem_by_llm(current_cefr: str, objective_cefr: str, problem_type: str):
+def _build_prompt(current_cefr: str, objective_cefr: str, problem_type: str):
+    template = problem_template
+
     if problem_type in ["reading", "listening"]:
         response_schemas = reading_listening_response_schemas
-        template = reading_listening_problem_template
-        transform_type = ChoiceQuestionProblem
+    if problem_type in ["writing"]:
+        response_schemas = writing_schemas
 
     # OutputParserの準備
     output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
@@ -65,6 +69,17 @@ def generate_problem_by_llm(current_cefr: str, objective_cefr: str, problem_type
     _input = prompt.format_prompt(
         current_cefr=current_cefr, objective_cefr=objective_cefr, problem_type=problem_type)
     
+    return _input, output_parser
+
+
+def generate_problem_by_llm(current_cefr: str, objective_cefr: str, problem_type: str):
+    if problem_type in ["reading", "listening"]:
+        transform_type = ChoiceQuestionProblem
+    if problem_type in ["writing"]:
+        transform_type = FreeDescriptionProblem
+    
+    _input, output_parser = _build_prompt(current_cefr, objective_cefr, problem_type)
+
     # 実行
     output = chat_model(_input.to_messages())
 
@@ -81,3 +96,45 @@ def generate_problem_by_llm(current_cefr: str, objective_cefr: str, problem_type
     _save_problem_file(problem, problem_type)
 
     return problem
+
+
+def async_generate_problem_by_llm(current_cefr: str, objective_cefr: str, problem_types: list[str]):
+    input_dicts = []
+    for problem_type in problem_types:
+        input_dict = {}
+        input_dict["problem_type"] = problem_type
+        if problem_type in ["reading", "listening"]:
+            input_dict["transform_type"] = ChoiceQuestionProblem
+        if problem_type in ["writing"]:
+            input_dict["transform_type"] = FreeDescriptionProblem
+    
+        _input, output_parser = _build_prompt(current_cefr, objective_cefr, problem_type)
+        input_dict["prompt"] = _input
+        input_dict["output_parser"] = output_parser
+        input_dicts.append(input_dict)
+
+    # 実行
+    prompts = [input_dict["prompt"].to_messages() for input_dict in input_dicts]
+    outputs = asyncio.run(chat_model.agenerate(prompts))
+    outputs = [output_generate[0].text for output_generate in outputs.generations]
+    logging.info(outputs)
+
+    # parse output
+    problems = []
+    for output, input_dict in zip(outputs, input_dicts):
+        transform_type = input_dict["transform_type"]
+        problem_type = input_dict["problem_type"]
+        output_parser = input_dict["output_parser"]
+        try:
+            problem = output_parser.parse(output)
+        except IndexError:
+            logging.warning(output)
+            problem = json.loads(output)
+        
+        problem = _transform_problem(problem, transform_type)
+        problems.append(problem)
+
+        # save
+        _save_problem_file(problem, problem_type)
+
+    return problems
