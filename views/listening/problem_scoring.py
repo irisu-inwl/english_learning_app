@@ -16,7 +16,7 @@ def view(problem: dict):
     answer_options = problem["answer_options"]
     st.radio("Answer Options:", answer_options, index=answer_index, disabled=True)
 
-    correct_answer = problem["correct"]
+    correct_answer = problem["correct_index"]
     commentary = problem["commentary"]
     st.write(f"Correct Answer: **{answer_options[correct_answer]}**")
     correct_incorrect = "Correct" if correct_answer == answer_index else "Incorrect"

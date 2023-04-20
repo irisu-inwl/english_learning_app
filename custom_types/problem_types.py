@@ -4,10 +4,10 @@ class ChoiceQuestionProblem(TypedDict):
     content: str
     question: str
     answer_options: list[str]
-    correct: int
+    correct_index: int
     commentary: str
     difficulty: float
-    category: str
+    topic: str
 
 class FreeDescriptionProblem(TypedDict):
     content: str
