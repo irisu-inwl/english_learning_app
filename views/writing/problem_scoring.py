@@ -16,9 +16,11 @@ def view(problem: dict):
 
     st.subheader("System Scoring")
     system_score = st.session_state["system_score"]
-    system_comments = st.session_state["system_comments"]
+    system_feedback = st.session_state["system_feedback"]
+    corrected_answer = st.session_state["system_corrected"]
     st.write(f"Score: {system_score}")
-    st.write(f"Comment: {system_comments}")
+    st.write(f"Feedback: {system_feedback}")
+    st.write(f"Corrected Answer: {corrected_answer}")
 
     st.subheader("Answer Example")
     st.write(answer_example)

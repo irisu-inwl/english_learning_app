@@ -45,10 +45,5 @@ def score_problem_by_llm(user_answer: str, writing_problem: dict):
     except IndexError:
         logging.warning(output.content)
         score_and_commentary = json.loads(output.content)
-    
-    # problem = _transform_problem(problem, transform_type)
-
-    # save
-    # _save_problem_file(problem, problem_type)
 
     return score_and_commentary
