@@ -53,7 +53,6 @@ def _build_prompt(
         response_schemas = WritingProblem
 
     # Parserの準備
-    # output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
     parser = PydanticOutputParser(pydantic_object=response_schemas)
     format_instructions = parser.get_format_instructions()
     

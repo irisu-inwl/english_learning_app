@@ -13,7 +13,6 @@ from logic.generate_problem import (
 
 
 def get_problems(current_cefr_level: str, objective_cefr_level: str):
-    # TODO: Logic を分けられるようにする
     config = st.session_state["config"]
 
     if config == "debug":
