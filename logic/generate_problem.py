@@ -1,25 +1,27 @@
 import json
 import logging
 import uuid
-from typing import get_type_hints
 import asyncio
+import random
 
 import yaml
 try:
     from yaml import CDumper as Dumper
 except ImportError:
     from yaml import Dumper
-from langchain.output_parsers import StructuredOutputParser
+from langchain.output_parsers import (
+    PydanticOutputParser
+)
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
+from logic.topics import csv_data
 
 from logic.prompts import (
     problem_template,
-    reading_response_schemas,
-    writing_response_schemas,
-    listening_response_schemas,
+    ReadingProblem,
+    ListeningProblem,
+    WritingProblem,
     english_test_target,
-    topics,
 )
 from custom_types.problem_types import (
     ChoiceQuestionReadingProblem, ChoiceQuestionListeningProblem, FreeDescriptionProblem
@@ -27,20 +29,6 @@ from custom_types.problem_types import (
 
 ProblemType = ChoiceQuestionReadingProblem | ChoiceQuestionListeningProblem | FreeDescriptionProblem
 chat_model = ChatOpenAI(temperature=0)
-
-
-def _transform_problem(problem: dict[str, str], transform_type: ProblemType):
-    # FIXME: pydantic parser使えば良いと思う
-    output: ProblemType = {}
-    type_hints = get_type_hints(transform_type)
-    
-    for key, var_type in type_hints.items():
-        value = problem[key]
-        if var_type == list[str] and value.startswith("[") is False:
-            value = f"[{value}]"
-        output[key] = var_type(value)
-    
-    return output
 
 
 def _save_problem_file(problem: dict, problem_type: str):
@@ -52,27 +40,32 @@ def _save_problem_file(problem: dict, problem_type: str):
         )
 
 
-def _build_prompt(current_cefr: str, objective_cefr: str, problem_type: str):
+def _build_prompt(
+    current_cefr: str, objective_cefr: str, problem_type: str, main_topic: str, sub_topic: str
+):
     template = problem_template
-    topic_examples = ",".join(topics)
 
     if problem_type == "reading":
-        response_schemas = reading_response_schemas
+        response_schemas = ReadingProblem
     if problem_type == "listening":
-        response_schemas = listening_response_schemas
+        response_schemas = ListeningProblem
     if problem_type == "writing":
-        response_schemas = writing_response_schemas
+        response_schemas = WritingProblem
 
-    # OutputParserの準備
-    output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
-    format_instructions = output_parser.get_format_instructions()
+    # Parserの準備
+    # output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
+    parser = PydanticOutputParser(pydantic_object=response_schemas)
+    format_instructions = parser.get_format_instructions()
     
     # ChatLLM に送るプロンプトのテンプレート
     prompt = ChatPromptTemplate(
         messages=[
             HumanMessagePromptTemplate.from_template(template) 
         ],
-        input_variables=["current_cefr", "objective_cefr", "problem_type", "english_test_target", "topic_examples"],
+        input_variables=[
+            "current_cefr", "objective_cefr", "problem_type", 
+            "english_test_target", "main_topic", "sub_topic"
+        ],
         partial_variables={"format_instructions": format_instructions}
     )
 
@@ -80,21 +73,19 @@ def _build_prompt(current_cefr: str, objective_cefr: str, problem_type: str):
     _input = prompt.format_prompt(
         current_cefr=current_cefr, objective_cefr=objective_cefr, 
         problem_type=problem_type, english_test_target=english_test_target,
-        topic_examples=topic_examples
+        main_topic=main_topic, sub_topic=sub_topic, 
     )
     
-    return _input, output_parser
+    return _input, parser
 
 
 def generate_problem_by_llm(current_cefr: str, objective_cefr: str, problem_type: str):
-    if problem_type == "reading":
-        transform_type = ChoiceQuestionReadingProblem
-    if problem_type == "listening":
-        transform_type = ChoiceQuestionListeningProblem
-    if problem_type == "writing":
-        transform_type = FreeDescriptionProblem
-
-    _input, output_parser = _build_prompt(current_cefr, objective_cefr, problem_type)
+    topic_data = random.choice(csv_data)
+    main_topic = topic_data["main_topic"]
+    sub_topic = topic_data["sub_topic"]
+    _input, output_parser = _build_prompt(
+        current_cefr, objective_cefr, problem_type, main_topic, sub_topic
+    )
 
     # 実行
     output = chat_model(_input.to_messages())
@@ -106,7 +97,6 @@ def generate_problem_by_llm(current_cefr: str, objective_cefr: str, problem_type
         logging.warning(output.content)
         problem = json.loads(output.content)
     
-    problem = _transform_problem(problem, transform_type)
 
     # save
     _save_problem_file(problem, problem_type)
@@ -119,18 +109,16 @@ def async_generate_problem_by_llm(current_cefr: str, objective_cefr: str, proble
     for problem_type in problem_types:
         input_dict = {}
         input_dict["problem_type"] = problem_type
-        if problem_type == "reading":
-            transform_type = ChoiceQuestionReadingProblem
-        if problem_type == "listening":
-            transform_type = ChoiceQuestionListeningProblem
-        if problem_type == "writing":
-            transform_type = FreeDescriptionProblem
 
-        input_dict["transform_type"] = transform_type
+        topic_data = random.choice(csv_data)
+        main_topic = topic_data["main_topic"]
+        sub_topic = topic_data["sub_topic"]
 
-        _input, output_parser = _build_prompt(current_cefr, objective_cefr, problem_type)
+        _input, parser = _build_prompt(
+            current_cefr, objective_cefr, problem_type, main_topic, sub_topic
+        )
         input_dict["prompt"] = _input
-        input_dict["output_parser"] = output_parser
+        input_dict["parser"] = parser
         input_dicts.append(input_dict)
 
     # 実行
@@ -142,16 +130,10 @@ def async_generate_problem_by_llm(current_cefr: str, objective_cefr: str, proble
     # parse output
     problems = []
     for output, input_dict in zip(outputs, input_dicts):
-        transform_type = input_dict["transform_type"]
         problem_type = input_dict["problem_type"]
-        output_parser = input_dict["output_parser"]
-        try:
-            problem = output_parser.parse(output)
-        except IndexError:
-            logging.warning(output)
-            problem = json.loads(output)
+        parser = input_dict["parser"]
+        problem = parser.parse(output).dict()
         
-        problem = _transform_problem(problem, transform_type)
         problems.append(problem)
 
         # save

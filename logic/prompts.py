@@ -1,78 +1,45 @@
 from langchain.output_parsers import ResponseSchema
+from pydantic import BaseModel, Field
 
 
 problem_template = """
 I am an English language learner aiming to improve my English proficiency from CEFR {current_cefr} to CEFR {objective_cefr}, focusing on {english_test_target} {problem_type} preparation.
 
 {format_instructions}
-I would like to improve my English proficiency through {english_test_target} {problem_type} preparation, ensuring that the topic is randomly chosen and not limited to a specific theme 
-topic's examples include {topic_examples}.
-Please submit a single question:
+Please submit single problem and question related to the topic {main_topic} and subtopic {sub_topic}:
 """
 
-problem_support_prompts = {
-    "reading": "",
-    "listening": "",
-    "writing": ""
-}
-
-# 出題トピック
-topics = [
-    "Environmental issues",
-    "Education",
-    "Technology",
-    "Health and medicine",
-    "Globalization",
-    "Employment and job market",
-    "Urban and rural life",
-    "Cultural differences",
-    "Social issues",
-    "Economics",
-    "Politics and government",
-    "Travel and tourism",
-    "Arts and entertainment",
-    "Science and research",
-    "Communication and media",
-    "Ethics and morality",
-    "Family and relationships",
-    "Climate change",
-    "Sports and recreation",
-    "Personal development",
-]
 
 # e.g. TOEFL, IELTS, Duolingo English Test
 # TOEFLとか特定のテストを指定すると特定のトピックに偏るので一般的なワードを入れてる
 english_test_target = "English Test" 
 
-reading_response_schemas = [
-    ResponseSchema(name="content", description="100-word or more sentences of 100 words or more on the subject matter in question"),
-    ResponseSchema(name="question", description="Questions about problematic content"),
-    ResponseSchema(name="answer_options", description="List format answer options of question"),
-    ResponseSchema(name="correct_index", description="An int index (≥0) indicating the correct answer choice of answer_options"),
-    ResponseSchema(name="commentary", description="Explanation of why this is the correct answer"),
-    ResponseSchema(name="difficulty", description="Float type difficulty of this problem from 0.0~9.0, similar to IELTS score"),
-    ResponseSchema(name="topic", description="Nouns that indicate what this question is a sentence against.")
-]
 
-listening_response_schemas = [
-    ResponseSchema(name="content", description="A description of a listening situation related to listening preparation, excluding conversations"),
-    ResponseSchema(name="passage", description="A listening passage related to the described situation"),
-    ResponseSchema(name="question", description="Questions about problematic content"),
-    ResponseSchema(name="answer_options", description="List format answer options for the question"),
-    ResponseSchema(name="correct_index", description="An int index (≥0) indicating the correct answer choice of answer_options"),
-    ResponseSchema(name="commentary", description="Explanation of why this is the correct answer"),
-    ResponseSchema(name="difficulty", description="Float type difficulty of this problem from 0.0~9.0, similar to IELTS score"),
-    ResponseSchema(name="topic", description="A noun indicating the subject matter of the content")
-]
+class ReadingProblem(BaseModel):
+    content: str = Field("About 500~800-word sentences on the subject matter in question")
+    question: str = Field("Questions about problematic content")
+    answer_options: list[str] = Field("List format answer options of question")
+    correct_index: int = Field("An int index (≥0) indicating the correct answer choice of answer_options")
+    commentary: str = Field("Explanation of why this is the correct answer")
+    difficulty: float = Field("Float type difficulty of this problem from 0.0~9.0, similar to IELTS score")
 
-writing_response_schemas = [
-    ResponseSchema(name="content", description="A writing prompt for writing preparation"),
-    ResponseSchema(name="question", description="A brief explanation of the writing task"),
-    ResponseSchema(name="answer_example", description="An example of a well-written response to the prompt"),
-    ResponseSchema(name="commentary", description="Explanation of what makes the example response effective"),
-    ResponseSchema(name="difficulty", description="Float type difficulty of this problem from 0.0~9.0, similar to IELTS score"),
-    ResponseSchema(name="topic", description="Nouns that indicate what this question is a sentence against.")    
-]
+
+class ListeningProblem(BaseModel):
+    content: str = Field("A description of a listening situation related to listening preparation, excluding conversations")
+    passage: str = Field("A listening passage related to the described situation")
+    question: str = Field("Questions about problematic content")
+    answer_options: list[str] = Field("List format answer options of question")
+    correct_index: int = Field("An int index (≥0) indicating the correct answer choice of answer_options")
+    commentary: str = Field("Explanation of why this is the correct answer")
+    difficulty: float = Field("Float type difficulty of this problem from 0.0~9.0, similar to IELTS score")
+
+
+class WritingProblem(BaseModel):
+    content: str = Field("A writing prompt for writing preparation")
+    question: str = Field("A brief explanation of the writing task")
+    answer_example: str = Field("An example of a well-written response to the prompt")
+    commentary: str = Field("Explanation of what makes the example response effective")
+    difficulty: float = Field("Float type difficulty of this problem from 0.0~9.0, similar to IELTS score")
 
 
 writing_scoring_template = """You are an English exam grader.
